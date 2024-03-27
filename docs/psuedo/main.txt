@@ -1,0 +1,641 @@
+1 //  Leo Timmins
+2 //
+3 // 'Super Mario Bros'
+4 //  MIT Licence 2023
+5 
+6 import pygame
+7 import random
+8 
+9 pygame.init()
+10 pygame.mixer.init()
+11 
+12 screen<-pygame.display.set_mode((800, 500))
+13 pygame.display.set_caption("Super Mario Bros")
+14 
+15 ////// init
+16 
+17 class UI():
+18     FUNCTION  __init__(self) -> None:
+19         RETURNS // What gets sent back?
+20         self.health<-3
+21         self.coins<-0
+22         // timer for respawn grace period
+23         self.inviciblity<--1
+24     ENDFUNCTION
+25     
+26     FUNCTION  render(self):
+27         RETURNS None
+28         screen.blit(coin_bg, (130, 350))
+29         money_as_display<-f"{self.coins}/36"
+30         IF self.coins > 999
+31             THEN
+32             money_as_display<-f"${round(self.coins/1000,1)}K"
+33         ENDIF
+34         IF self.coins > 9_999
+35             THEN
+36             money_as_display<-f"${round(self.coins/1000,0)}K"
+37         ENDIF
+38         IF self.coins > 999_999
+39             THEN
+40             money_as_display<-f"${round(self.coins/1_000_000,1)}M"
+41         ENDIF
+42         IF self.coins > 9_999_999
+43             THEN
+44             money_as_display<-f"${round(self.coins/1_000_000,0)}M"
+45         ENDIF
+46         
+47         img<-pygame.font.SysFont(None, 50).render(money_as_display, True, (255, 255, 0))
+48         screen.blit(img, (175, 460))
+49         
+50         screen.blit(heart_bg, (0, 350))
+51         FOR x in range(self.health):
+52             screen.blit(heart_full, (-10+x*30, 435))
+53         
+54     ENDFUNCTION
+55 class Enemy():
+56     FUNCTION  __init__(self, pos) -> None:
+57         RETURNS None
+58         self.pos<-pos
+59         self.velocity<-[0,0]
+60         self.jump_timer<--1
+61         self.direction<-"right"
+62         self.alive<-True
+63     ENDFUNCTION
+64 
+65     FUNCTION  render(self):
+66         RETURNS None
+67         IF self.alive
+68             THEN
+69             self.physics()
+70         ENDIF
+71         IF self.alive = True
+72             THEN
+73             IF self.direction = "left"
+74                 THEN
+75                 screen.blit(turtle_left, (self.pos[0]-80-camera_pos[0], self.pos[1]-80-camera_pos[1]))
+76             ENDIF
+77             IF self.direction = "right"
+78                 THEN
+79                 screen.blit(turtle_right, (self.pos[0]-70-camera_pos[0], self.pos[1]-80-camera_pos[1]))
+80             ENDIF
+81         ENDIF
+82     ENDFUNCTION
+83     
+84     FUNCTION  physics(self):
+85         RETURNS // What gets sent back?
+86         self.move(self.direction)
+87         
+88         self.on_floor<-False
+89         self.pos[0] += self.velocity[0]
+90         self.pos[1] += self.velocity[1]
+91         
+92         IF player.pos[0] < self.pos[0] + 45 and self.pos[0] - 45  < player.pos[0]
+93             THEN
+94             IF player.pos[1] > self.pos[1] - 35 and player.pos[1] < self.pos[1]
+95                 THEN
+96                 self.alive<-False
+97                 player.jump_timer<--1
+98                 player.on_floor<-True
+99                 player.velocity<-[0,0]
+100                 player.move("up")
+101                 pygame.mixer.Channel(3).play(pygame.mixer.Sound('src/audio/sfx/punch.mp3'))
+102             ENDIF
+103         ENDIF
+104         IF player.pos[0] < self.pos[0] + 45 and self.pos[0] < player.pos[0]
+105             THEN
+106             IF player.pos[1] < self.pos[1] + 35 and player.pos[1] > self.pos[1]
+107                 THEN
+108                 IF ui.inviciblity = -1
+109                     THEN
+110                     ui.health -= 1
+111                     ui.inviciblity<-59
+112                     pygame.mixer.Channel(2).play(pygame.mixer.Sound('src/audio/sfx/ow.mp3'))
+113                 ENDIF
+114             ENDIF
+115         ENDIF
+116         
+117         
+118         FOR platform_tile in platform_list: 
+119             IF self.pos[0] < platform_tile.pos[0] + 70 and platform_tile.pos[0] < self.pos[0]
+120                 THEN
+121                 IF self.pos[1] >= platform_tile.pos[1]-20 and (self.pos[1] > platform_tile.pos[1] + 35)=False
+122                     THEN
+123                     self.pos[1]<-platform_tile.pos[1]-20
+124                     IF self.velocity[1] > 0
+125                         THEN
+126                         self.velocity[1]<-0
+127                     ENDIF
+128                     self.on_floor<-True
+129                 ENDIF
+130                 elif self.pos[1] > platform_tile.pos[1] + 35 and self.pos[1] <= platform_tile.pos[1] + 100:  //You will need to change this to CASE OF
+131                     self.pos[1]<-platform_tile.pos[1]+100
+132                     IF self.velocity[1] < 0
+133                         THEN
+134                         self.velocity[1]<-0
+135                     ENDIF
+136                     self.jump_timer<--1
+137                 
+138             ENDIF
+139         IF self.pos[1] >= 390
+140             THEN
+141             self.pos[1]<-390
+142             self.on_floor<-True
+143         ENDIF
+144         
+145         IF self.on_floor = False   
+146             THEN
+147             self.velocity[1] += 0.2
+148         ELSE
+149             IF self.velocity[1] > 0
+150                 THEN
+151                 self.velocity[1]<-0
+152             ENDIF
+153         ENDIF
+154         
+155         
+156         IF self.jump_timer > -1
+157             THEN
+158             self.velocity[1] -=0.3
+159             self.pos[1] -= 5
+160             self.jump_timer -= 5
+161         ENDIF
+162         
+163         IF self.on_floor = False
+164             THEN
+165             self.sprite<-"walk"
+166         ELSE
+167             self.sprite<-"idle"
+168         ENDIF
+169     ENDFUNCTION
+170 
+171         
+172     FUNCTION  move(self, dir):
+173         RETURNS // What gets sent back?
+174         match dir:
+175             case "left":
+176                 FOR platform_tile in platform_list: 
+177                     IF self.pos[1] <= platform_tile.pos[1] + 70 and platform_tile.pos[1] < self.pos[1]
+178                         THEN
+179                         IF self.pos[0] - 2 > platform_tile.pos[0] and self.pos[0] - 2 < platform_tile.pos[0] + 70
+180                             THEN
+181                             self.pos[0] += 2
+182                             self.direction<-"right"
+183                         ENDIF
+184                     ENDIF
+185                 self.pos[0] -= 2
+186                 IF self.pos[0] < 20
+187                     THEN
+188                     self.pos[0]<-20
+189                 ENDIF
+190             case "right":
+191                 FOR platform_tile in platform_list:
+192                     IF self.pos[1] <= platform_tile.pos[1] + 70 and platform_tile.pos[1] < self.pos[1]
+193                         THEN
+194                         IF self.pos[0] + 2 > platform_tile.pos[0] and self.pos[0] + 2 < platform_tile.pos[0] + 70
+195                             THEN
+196                             self.pos[0] -= 2
+197                             self.direction<-"left"
+198                         ENDIF
+199                     ENDIF
+200                 self.pos[0] += 2
+201             case "up":
+202                 IF self.jump_timer <= -1 and self.on_floor
+203                     THEN
+204                     pygame.mixer.Channel(1).play(pygame.mixer.Sound('src/audio/sfx/jump.wav'))
+205                     self.jump_timer<-100
+206                 ENDIF
+207     ENDFUNCTION
+208     
+209 
+210 class Player():
+211     FUNCTION  __init__(self) -> None:
+212         RETURNS None
+213         self.pos<-[300,200]
+214         self.velocity<-[0,0]
+215         // timer to make a parabolic jump
+216         self.jump_timer<--1
+217         // animation settings
+218         self.sprite<-"idle"
+219         self.direction<-"right"
+220     ENDFUNCTION
+221     
+222     FUNCTION  physics(self):
+223         RETURNS None
+224         self.on_floor<-False
+225         self.pos[0] += self.velocity[0]
+226         self.pos[1] += self.velocity[1]
+227         // colision
+228         FOR platFORm_tile in platFORm_list:  //Pseudocode can't handle this
+229             IF self.pos[0] < platform_tile.pos[0] + 70 and platform_tile.pos[0] < self.pos[0]
+230                 THEN
+231                 IF self.pos[1] >= platform_tile.pos[1] and self.pos[1] <= platform_tile.pos[1] + 35
+232                     THEN
+233                     self.pos[1]<-platform_tile.pos[1]
+234                     IF platform_tile.sprite = jump_booster
+235                         THEN
+236                         // make a big jump
+237                         self.velocity[1] *= -0.8
+238                         self.move("up")
+239                         self.jump_timer<-200
+240                     ENDIF
+241                     CASE OF self.velocity[1] > 0:
+242                         self.velocity[1]<-0
+243                     self.on_floor<-True
+244                     
+245                     IF platform_tile.sprite = spikes
+246                         THEN
+247                         ui.health<-0
+248                         pygame.mixer.Channel(2).play(pygame.mixer.Sound('src/audio/sfx/ow.mp3'))
+249                     ENDIF
+250                     
+251                 ENDIF
+252                 elif self.pos[1] > platform_tile.pos[1] and self.pos[1] < platform_tile.pos[1] + 90:  //You will need to change this to CASE OF
+253                     IF platform_tile.sprite = mystery_box
+254                         THEN
+255                         pygame.mixer.Channel(3).play(pygame.mixer.Sound('src/audio/sfx/mystery_hit.wav'))
+256                         ui.coins += 1
+257                         platform_tile.sprite<-mystery_box_inactive
+258                     ELSE
+259                         pygame.mixer.Channel(2).play(pygame.mixer.Sound('src/audio/sfx/block_hit.wav'))
+260                     ENDIF
+261                     self.pos[1]<-platform_tile.pos[1] + 90
+262                     self.velocity[1]<-0
+263                     self.jump_timer<--1
+264                 
+265             ENDIF
+266         IF self.pos[1] >= 400
+267             THEN
+268             self.pos[1]<-400
+269             self.on_floor<-True
+270         ENDIF
+271         
+272         IF self.on_floor = False   
+273             THEN
+274             self.velocity[1] += 0.2
+275         ELSE
+276             IF self.velocity[1] > 0
+277                 THEN
+278                 self.velocity[1]<-0
+279             ENDIF
+280         ENDIF
+281         
+282         IF self.jump_timer > -1
+283             THEN
+284             self.velocity[1] -=0.3
+285             self.pos[1] -= 5
+286             self.jump_timer -= 5
+287             
+288         ENDIF
+289         //// Camera movement
+290         IF self.pos[0] >= 600 + camera_pos[0]
+291             THEN
+292             camera_pos[0] += 6
+293             
+294         ENDIF
+295         IF self.pos[0] <= 200 + camera_pos[0]
+296             THEN
+297             camera_pos[0] -= 6
+298             IF camera_pos[0] < 0
+299                 THEN
+300                 camera_pos[0]<-0
+301             ENDIF
+302         ENDIF
+303         
+304         IF self.pos[1] >= 250 + camera_pos[1]
+305             THEN
+306             camera_pos[1] += 6
+307             IF camera_pos[1] > 30
+308                 THEN
+309                 camera_pos[1]<-30
+310             ENDIF
+311             
+312         ENDIF
+313         IF self.pos[1] <= 150 + camera_pos[1]
+314             THEN
+315             camera_pos[1] -= 6 
+316         ENDIF
+317         ////
+318         
+319         IF self.on_floor = False
+320             THEN
+321             self.sprite<-"walk"
+322         ELSE
+323             self.sprite<-"idle"
+324         ENDIF
+325     ENDFUNCTION
+326 
+327         
+328     FUNCTION  move(self, dir):
+329         RETURNS None
+330         match dir:
+331             case "left":
+332                 self.direction<-"left"
+333                 FOR platform_tile in platform_list:
+334                     IF self.pos[1] <= platform_tile.pos[1] + 70 and platform_tile.pos[1] < self.pos[1]
+335                         THEN
+336                         IF self.pos[0] - 6 > platform_tile.pos[0] and self.pos[0] - 6 < platform_tile.pos[0] + 70
+337                             THEN
+338                             self.pos[0] += 6
+339                         ENDIF
+340                     ENDIF
+341                 self.pos[0] -= 6
+342                 IF self.pos[0] < 20
+343                     THEN
+344                     self.pos[0]<-20
+345                 ENDIF
+346             case "right":
+347                 self.direction<-"right"
+348                 FOR platFORm_tile in platFORm_list:  //Pseudocode can't handle this
+349                     IF self.pos[1] <= platform_tile.pos[1] + 70 and platform_tile.pos[1] < self.pos[1]
+350                         THEN
+351                         IF self.pos[0] + 6 > platform_tile.pos[0] and self.pos[0] + 6 < platform_tile.pos[0] + 70
+352                             THEN
+353                             self.pos[0] -= 6
+354                         ENDIF
+355                     ENDIF
+356                 self.pos[0] += 6
+357             case "up":
+358                 // jump
+359                 IF self.jump_timer <= -1 and self.on_floor
+360                     THEN
+361                     pygame.mixer.Channel(1).play(pygame.mixer.Sound('src/audio/sfx/jump.wav'))
+362                     self.jump_timer<-100
+363                 ENDIF
+364                 
+365     ENDFUNCTION
+366     FUNCTION  render(self):
+367         RETURNS // What gets sent back?
+368         self.physics()
+369         //deubuging - point of collision
+370         //pygame.draw.rect(screen, (200,50,50), pygame.Rect(self.pos[0]-10-camera_pos[0],self.pos[1]-10,20,20))
+371         IF f"{self.sprite}_{self.direction}" = "idle_left"
+372             THEN
+373             screen.blit(player_animation_idle_left, (self.pos[0]-camera_pos[0]-30, self.pos[1]-55-camera_pos[1]))
+374         ENDIF
+375         elif f"{self.sprite}_{self.direction}" = "idle_right":  //You will need to change this to CASE OF
+376             screen.blit(player_animation_idle_right, (self.pos[0]-camera_pos[0]-30, self.pos[1]-55-camera_pos[1]))
+377         elif f"{self.sprite}_{self.direction}" = "walk_left":  //You will need to change this to CASE OF
+378             screen.blit(player_animation_walk_left, (self.pos[0]-camera_pos[0]-30, self.pos[1]-55-camera_pos[1]))
+379         elif f"{self.sprite}_{self.direction}" = "walk_right":  //You will need to change this to CASE OF
+380             screen.blit(player_animation_walk_right, (self.pos[0]-camera_pos[0]-30, self.pos[1]-55-camera_pos[1]))
+381     ENDFUNCTION
+382 class Floor():
+383     FUNCTION  __init__(self, pos) -> None:
+384         RETURNS None
+385         self.pos<-pos
+386     ENDFUNCTION
+387     
+388     FUNCTION  render(self):
+389         RETURNS None
+390         screen.blit(floor, (self.pos[0]-camera_pos[0], self.pos[1]-camera_pos[1]))
+391     ENDFUNCTION
+392 
+393 class Cloud():
+394     FUNCTION  __init__(self, pos) -> None:
+395         RETURNS None
+396         self.pos<-pos
+397         // To Do: Varying clouds
+398         c<-random.randint(1,1)
+399         IF c = 1
+400             THEN
+401             self.sprite<-cloud_1
+402         ENDIF
+403     ENDFUNCTION
+404     
+405     FUNCTION  render(self):
+406         RETURNS None
+407         screen.blit(self.sprite, (self.pos[0]-camera_pos[0], self.pos[1]))
+408     ENDFUNCTION
+409 
+410 class Platform():
+411     FUNCTION  __init__(self,pos, type) -> None:
+412         RETURNS None
+413         self.pos<-pos
+414         match type:
+415             case "Crate":    
+416                 self.sprite<-crate
+417             case "Myst":
+418                 self.sprite<-mystery_box
+419             case "Spikes":
+420                 self.sprite<-spikes
+421             case "Jumper":
+422                 self.sprite<-jump_booster
+423     ENDFUNCTION
+424     
+425     FUNCTION  render(self):
+426         RETURNS None
+427         IF self.sprite != "None"
+428             THEN
+429             screen.blit(self.sprite, (self.pos[0]-camera_pos[0], self.pos[1]-camera_pos[1]))
+430         ENDIF
+431     ENDFUNCTION
+432 
+433 // The selected scene
+434 level<-"menu"
+435 
+436 camera_pos<-[0,0]
+437 
+438 pygame.mixer.music.load("src/audio/menu_theme.mp3")
+439 pygame.mixer.music.play(-1)
+440 
+441 //// preload assets
+442 jump_booster<-pygame.image.load("src/img/jump_booster.png")
+443 crate<-pygame.image.load("src/img/crate.png")
+444 crate<-pygame.transform.scale(crate, (70,70))
+445 mystery_box<-pygame.image.load("src/img/myst_box.png")
+446 mystery_box<-pygame.transform.scale(mystery_box, (70,70))
+447 spikes<-pygame.image.load("src/img/spikes.png")
+448 spikes<-pygame.transform.scale(spikes, (70,70))
+449 mystery_box_inactive<-pygame.image.load("src/img/mystery_box_inactive.png")
+450 mystery_box_inactive<-pygame.transform.scale(mystery_box_inactive, (70,70))
+451 logo<-pygame.image.load("src/img/logo.png")
+452 floor<-pygame.image.load("src/img/dirt.png")
+453 floor<-pygame.transform.scale(floor, (150,150))
+454 cloud_1<-pygame.image.load("src/img/cloud_1.png")
+455 cloud_1<-pygame.transform.scale(cloud_1, (200,150))
+456 sky<-pygame.image.load("src/img/sky.jpeg")
+457 sky<-pygame.transform.scale(sky, (800,500))
+458 turtle<-pygame.image.load("src/img/turtle.png")
+459 turtle_right<-pygame.transform.scale(turtle, (150,150))
+460 turtle_left<-pygame.transform.flip(turtle_right, True, False)
+461 
+462 heart_full<-pygame.image.load("src/img/ui/heart_full.png")
+463 heart_empty<-pygame.image.load("src/img/ui/heart_empty.png")
+464 heart_full= pygame.transform.scale(heart_full, (100,100))
+465 heart_empty= pygame.transform.scale(heart_empty, (100,100))
+466 heart_bg<-pygame.image.load("src/img/ui/heart_bg.png")
+467 heart_bg= pygame.transform.scale(heart_bg, (180,180))
+468 coin_bg<-pygame.image.load("src/img/ui/coin_bg.png")
+469 coin_bg= pygame.transform.scale(coin_bg, (180,180))
+470 
+471 logo_animation<--1
+472 
+473 player_animation_idle_left<-pygame.image.load("src/img/charecters/tile028.png")
+474 player_animation_idle_right<-pygame.image.load("src/img/charecters/tile043.png")
+475 player_animation_walk_left<-pygame.image.load("src/img/charecters/tile027.png")
+476 player_animation_walk_right<-pygame.image.load("src/img/charecters/tile042.png")
+477 ////
+478 
+479 // Only one instance at a time should be active
+480 player<-Player()
+481 ui<-UI()
+482 
+483 // render lists
+484 scenery_list<-[] 
+485 platform_list<-[]
+486 enemy_list<-[]
+487 
+488 FOR x 0 TO 80
+489     scenery_list.append(Floor((x*150, 400)))
+490     
+491 NEXT
+492 FOR x 0 TO 50
+493     scenery_list.append(Cloud((x*400+20, random.randint(25,90))))
+494 NEXT
+495 
+496 // Compile text into map
+497 line_count<-0
+498 word_count<-0
+499 FOR line in open("platFORm_spawn.txt", "r").read().split("\n"):  //Pseudocode can't handle this
+500     word_count<-0
+501     FOR word in line.split(" "):  //Pseudocode can't handle this
+502         IF word in ("Crate", "Myst", "Spikes", "Jumper")
+503             THEN
+504             platform_list.append(Platform((line_count*68, 340 - word_count*68), word))
+505         ENDIF
+506         IF word = "Enemy"
+507             THEN
+508             enemy_list.append(Enemy([line_count*68, 340 - word_count*68]))
+509         ENDIF
+510         word_count+=1
+511     line_count+=1
+512 
+513 
+514 left_down<-False
+515 right_down<-False
+516 //////
+517 
+518 
+519 exit<-False
+520 WHILE not exit DO
+521     //// Input
+522     FOR event in pygame.event.get():  //Pseudocode can't handle this
+523         IF event.type = pygame.QUIT
+524             THEN
+525             exit<-True
+526         ENDIF
+527         IF event.type = pygame.KEYDOWN
+528             THEN
+529             IF event.key = pygame.K_a
+530                 THEN
+531                 left_down<-True
+532             ENDIF
+533             IF event.key = pygame.K_d
+534                 THEN
+535                 right_down<-True
+536             ENDIF
+537             IF event.key = pygame.K_w
+538                 THEN
+539                 player.move("up")
+540             ENDIF
+541             IF event.key = pygame.K_r
+542                 THEN
+543                 ui.health<-0
+544             ENDIF
+545         ENDIF
+546         IF event.type = pygame.KEYUP
+547             THEN
+548             IF event.key = pygame.K_SPACE
+549                 THEN
+550                 match level:
+551                     case "menu":
+552                         IF logo_animation  = -1
+553                             THEN
+554                             logo_animation<-0
+555                         ENDIF
+556             ENDIF
+557             IF event.key = pygame.K_a
+558                 THEN
+559                 left_down<-False
+560             ENDIF
+561             IF event.key = pygame.K_d
+562                 THEN
+563                 right_down<-False
+564             ENDIF
+565         ENDIF
+566     
+567     IF left_down
+568         THEN
+569         player.move("left")
+570     ENDIF
+571     IF right_down
+572         THEN
+573         player.move("right")
+574     ENDIF
+575     ////
+576     IF ui.inviciblity != -1
+577         THEN
+578         ui.inviciblity -= 1
+579         
+580     ENDIF
+581     // IF dead => reset map
+582     THEN
+583     ENDIF
+584     IF ui.health = 0
+585         THEN
+586         ui.health<-3
+587         ui.coins<-0
+588         FOR block in platFORm_list:  //Pseudocode can't handle this
+589             IF block.sprite = mystery_box_inactive
+590                 THEN
+591                 block.sprite<-mystery_box
+592             ENDIF
+593         FOR enemy in enemy_list:  //Pseudocode can't handle this
+594             enemy.alive<-True
+595         player<-Player()
+596         player.pos[1]-=50
+597             
+598     ENDIF
+599     screen.fill((50,200,250))
+600     screen.blit(sky, (0,0))
+601     
+602     FOR scenery_tile in scenery_list: 
+603         scenery_tile.render()
+604     
+605     match level:
+606         case "menu":
+607             screen.blit(logo, (250,70+logo_animation))
+608             img<-pygame.font.SysFont(None, 50).render("press 'Space' to play", True, (10,10,10))
+609             screen.blit(img, (235, 220 - logo_animation))
+610             // Move the logo
+611             IF logo_animation != -1 and logo_animation >= -300
+612                 THEN
+613                 logo_animation -= 3
+614             ENDIF
+615             // Check IF animation is done
+616             THEN
+617             ENDIF
+618             IF logo_animation <= -300
+619                 THEN
+620                 level<-1
+621                 camera_pos[0]<-0
+622                 pygame.mixer.music.stop()
+623                 pygame.mixer.music.load("src/audio/gameplay_theme.mp3")
+624                 pygame.mixer.music.play(-1)
+625             ENDIF
+626             
+627             camera_pos[0] += 1  
+628         case 1:
+629             FOR platform_tile in platform_list:
+630                 platform_tile.render()
+631             FOR enemy_tile in enemy_list:
+632                 enemy_tile.render()
+633             player.render()
+634             ui.render()
+635         // To do: more levels?
+636             
+637           
+638     pygame.display.update()
+639     // frame rate capped to 60 fps
+640     pygame.time.Clock().tick(60)
+641 ENDWHILE

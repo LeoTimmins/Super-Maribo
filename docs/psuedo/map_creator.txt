@@ -1,0 +1,55 @@
+1 // Crate     -       (0,0,0)         //000000
+2 // Enemy     -       (255,0,102)     //ff0066
+3 // Myst      -       (0,255,0)       //00ff00
+4 // Null      -       (255,255,255)   //ffffff
+5 // Spikes    -       (66,135,245)    //4287f5
+6 // Jumper    -       (245,120,66)    //f57842
+7 
+8 // To do Checkpoints
+9 
+10 
+11 OUTPUT "-- Building Map -- "
+12 from PIL import Image
+13 import lpf
+14 
+15 // open image and get pixel rgba values
+16 map_src<-Image.open('tools/map_creator/map.png', 'r')
+17 output_src<-open('platform_spawn.txt', 'w')
+18 pix_val<-list(map_src.getdata())
+19 
+20 // counts total coins in map
+21 c_count<-0
+22 
+23 pix_lines<-[]
+24 addition_temp<-[]
+25 FOR y 0 TO 400
+26     FOR x 0 TO 400
+27         IF pix_val[x*400+y] = (255,255,255,255)
+28             THEN
+29             addition_temp.append("Null")
+30         ENDIF
+31         CASE OF pix_val[x*400+y] = (0,0,0,255):
+32             addition_temp.append("Crate")
+33         CASE OF pix_val[x*400+y] = (0,255,0,255):
+34             addition_temp.append("Myst")
+35             c_count += 1
+36         CASE OF pix_val[x*400+y] = (255,0,102,255):
+37             addition_temp.append("Enemy")
+38         CASE OF pix_val[x*400+y] = (66,135,245,255):
+39             addition_temp.append("Spikes")
+40         CASE OF pix_val[x*400+y] = (245,120,66,255):
+41             addition_temp.append("Jumper")
+42         ELSE
+43             OUTPUT pix_val[x*400+y]
+44     NEXT
+45     pix_lines.append(addition_temp)
+46     addition_temp=[]  //Possible array.
+47 NEXT
+48 
+49 // Compiles to text
+50 FOR line in pix_lines:  //Pseudocode can't handle this
+51     FOR word in lpf.reverse(line):  //Pseudocode can't handle this
+52         output_src.write(f"{word} ")
+53     output_src.write('\n')
+54 
+55 OUTPUT f"\n-- Map Updated [{c_count}] --\n"

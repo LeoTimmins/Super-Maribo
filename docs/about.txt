@@ -1,0 +1,26 @@
+Purpose:
+    To create a similar experience to 'Super Mario Bros' by Nintendo but with
+    modern graphics, a 140fps, 32bit color, pc playability and unique twists
+
+Description:
+    The game is an action packed platformer where you must defeat enemys and complete an 
+    obstical course to try and get all 36 of coins in the shortest amount of time.
+    It is played with the WASD keys.
+    It requires a good understanding of how the player moves,
+    and uses advanced features such as 'bunny hopping' to defeat
+    in a record time.
+
+Requirments:
+    Enemys
+    Traps
+    Vertical & Horizontal movement
+    Complex chalenges
+    Detailed physics logic
+    Coin counter
+    Music
+    Good graphics
+    Responsivness
+    Smooth/fluid motion
+
+Trace Tables:
+    cannot be used due to variability of input, and many variable are not values but pointers

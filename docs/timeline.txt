@@ -1,0 +1,21 @@
+Day 0:
+    - Create player sprite                                          ✅
+        rendering       ✅
+        basic physics   ✅
+    - Create The Menu                                               ✅
+Day 1:
+    - Create floors, platforms, clouds, mystery boxes               ✅
+    - Create map_text to map compiler                               ✅
+Day 2: 
+    - Collision logic                                               ✅
+        vertical    ✅
+        horizontal  ✅
+    - Enemys                                                        ✅
+Day 3:  
+    - Jump Booster                                                  ✅
+    - Spike Trap                                                    ✅
+Day 4:
+    - UI work                                                       ✅
+        coins   ✅
+        health  ✅
+    - Create image to map_text compiler                             ✅
